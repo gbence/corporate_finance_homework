@@ -19,7 +19,7 @@
     - else
       %span.big= solution.state
       (
-      %a{ :href => "/solutions/#{solution.url_hash}/regenerate" }<> újra generálás
+      %a{ :href => "/solutions/#{solution.url_hash}/regenerate" }<> újragenerálás
       )
 
 .element
@@ -131,7 +131,7 @@
         %tr
           %th Időpont
           - for o in (solution.data[:stocks]+solution.data[:portfolios])
-            %th= o.name.upcase + "deflált bázisindex"
+            %th= o.name.upcase + " deflált bázisindex"
       %tbody
         - for day in solution.data[:indices].first.days
           %tr
@@ -143,6 +143,10 @@
     %p
       Az adatokat grafikusan az alábbi ábra jeleníti meg:
       %img{ :src => "/images/#{solution.url_hash}/deflated_base_indices_all.png", :alt => 'deflált bázisindexek' }
+    %p
+      Összehasonlításul érdemes megtekinteni a deflálatlan és deflált indexeket is a következő ábrákon:
+      - for o in (solution.data[:stocks]+solution.data[:portfolios])
+        %img{ :src => "/images/#{solution.url_hash}/simple_and_deflated_base_indices_#{o.name.downcase.gsub('+','_')}.png", :alt => "deflálatlan és deflált bázisindexek" }
 
     %h3
       %a{ :name => "f1_deviza_alakulasa"}== Deviza (#{solution.data[:currencies].last.name.upcase}) alakulása
@@ -203,7 +207,7 @@
         %tr
           %th Időpont
           - for o in (solution.data[:stocks]+solution.data[:portfolios])
-            %th= o.name.upcase + "deflált bázisindex"
+            %th= o.name.upcase + " deflált bázisindex"
       %tbody
         - for day in solution.data[:indices].first.days
           %tr
@@ -215,6 +219,10 @@
     %p
       Az adatokat grafikusan az alábbi ábra jeleníti meg:
       %img{ :src => "/images/#{solution.url_hash}/deflated_base_indices_for_foreigns_all.png", :alt => 'devizához tartozó deflált bázisindexek' }
+    %p
+      Összehasonlításul érdemes megtekinteni a deflálatlan és deflált indexeket is együtt a következő ábrákon:
+      - for o in (solution.data[:stocks]+solution.data[:portfolios])
+        %img{ :src => "/images/#{solution.url_hash}/simple_and_deflated_base_indices_for_foreigns_#{o.name.downcase.gsub('+','_')}.png", :alt => "deflálatlan és deflált bázisindexek" }
 
   .element
     %h2 2. feladat
@@ -272,6 +280,12 @@
       Az adatokat grafikusan az alábbi ábrák jelenítik meg:
       - for o in (solution.data[:indices] + solution.data[:stocks] + solution.data[:portfolios])
         %img{ :src => "/images/#{solution.url_hash}/log_yields_#{o.name.downcase.gsub('+', '_')}.png", :alt => 'loghozamok' }
+    %p
+      Ezeken kívül a loghozamok kumulált értékeit (amelyek egyben a
+      bázisindexek logaritmusai is) az alábbi grafikonok jelenítik meg:
+      - for o in (solution.data[:indices] + solution.data[:stocks] + solution.data[:portfolios])
+        %img{ :src => "/images/#{solution.url_hash}/cumulated_log_yields_#{o.name.downcase.gsub('+', '_')}.png", :alt => 'loghozamok' }
+      %img{ :src => "/images/#{solution.url_hash}/cumulated_log_yields_all.png", :alt => 'loghozamok' }
 
     %h3
       %a{ :name => "f2_szorasok" } Szórások
@@ -347,32 +361,34 @@
       hozamok alapján számított statisztikai értékeket az alábbi táblázat
       tartalmazza:
     %table.unsortable
-      - for o,caption in solution.data[:stocks].map { |o| [ o, 'Részvény mutatók' ] } + solution.data[:portfolios].map { |o| [ o, 'Portfólió mutatók' ] }
-        %tbody
-          %tr
-            %th= caption
-            %th Mutató
-            %th Kovariancia (BUX-szal)
-            %th β (BUX-szal)
-            %th Piaci kockázat
-            %th Egyedi kockázat
-            %th Teljes kockázat
-          %tr
-            %td{ :rowspan => ([:b,:b_usd]&o.aggregates.keys).size }== #{o.name.upcase}
-            %td bázisindex
-            %td= format_value_or_dash("%.4f", o.aggregates[:b][:c_bux])
-            %td= format_value_or_dash("%.4f", o.aggregates[:b][:b_bux])
-            %td= format_value_or_dash("%.4f", o.aggregates[:b][:rs_bux])
-            %td= format_value_or_dash("%.4f", o.aggregates[:b][:rn_bux])
-            %td= format_value_or_dash("%.4f", o.aggregates[:b][:s])
-          - if o.aggregates[:b_usd]
+      %thead
+        %tr
+          %th
+          %th Mutató
+          %th Kovariancia<sub>BUX</sub>
+          %th β<sub>BUX</sub>
+          %th Piaci kockázat
+          %th Egyedi kockázat
+          %th Teljes kockázat
+        - for o,caption in solution.data[:stocks].map { |o| [ o, 'Részvény mutatók' ] } + solution.data[:portfolios].map { |o| [ o, 'Portfólió mutatók' ] }
+          %tbody
             %tr
-              %td bázisindex (USD)
-              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:c_bux])
-              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:b_bux])
-              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:rs_bux])
-              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:rn_bux])
-              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:s])
+              %td{ :rowspan => ([:b,:b_usd]&o.aggregates.keys).size }== #{o.name.upcase}
+              %td bázisindex
+              %td= format_value_or_dash("%.4f", o.aggregates[:b][:c_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b][:b_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b][:rs_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b][:rn_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b][:s])
+            /
+              - if o.aggregates[:b_usd]
+                %tr
+                  %td bázisindex (USD)
+                  %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:c_bux])
+                  %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:b_bux])
+                  %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:rs_bux])
+                  %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:rn_bux])
+                  %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:s])
     /
       %p
         Ellenőrzés gyanánt 

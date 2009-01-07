@@ -194,16 +194,16 @@ class Solution
       p.compute_variance_for(:all)
 
       # Kovariancia és béta
-      p.compute_covariance_with(bux, [ :c, :b, :b_usd, :l ])
-      p.compute_beta_on(bux, [ :c, :b, :b_usd, :l ])
+      p.compute_covariance_with(bux, [ :c, :b, :b_usd, :l, :cl ])
+      p.compute_beta_on(bux, [ :c, :b, :b_usd, :l, :cl ])
 
       # Portfolió kockázata
-      p.compute_systematic_risk_on(bux, [ :c, :b, :b_usd, :l ])
-      p.compute_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l ])
+      p.compute_systematic_risk_on(bux, [ :c, :b, :b_usd, :l, :cl ])
+      p.compute_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l, :cl ])
 
       # Minimalizálási feladat
       if defined?(GSL)
-        p.compute_minimum_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l ])
+        p.compute_minimum_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l, :cl ])
       end
 
       optimized_portfolios << Portfolio.new(p.aggregates[:b][:w_min].map { |k,v| [ p.sources.to_a.inject({}) { |h,ss| h.merge(ss[0].name.to_s.upcase => ss[0]) }[k.to_s.upcase], v ]}, parameters[:start], parameters[:end], true) # az utolsó true az "optimized"
@@ -229,16 +229,16 @@ class Solution
       p.compute_variance_for(:all)
 
       # Kovariancia és béta
-      p.compute_covariance_with(bux, [ :c, :b, :b_usd, :l ])
-      p.compute_beta_on(bux, [ :c, :b, :b_usd, :l ])
+      p.compute_covariance_with(bux, [ :c, :b, :b_usd, :l, :cl ])
+      p.compute_beta_on(bux, [ :c, :b, :b_usd, :l, :cl ])
 
       # Portfolió kockázata
-      p.compute_systematic_risk_on(bux, [ :c, :b, :b_usd, :l ])
-      p.compute_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l ])
+      p.compute_systematic_risk_on(bux, [ :c, :b, :b_usd, :l, :cl ])
+      p.compute_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l, :cl ])
 
       # Minimalizálási feladat
       if defined?(GSL)
-        p.compute_minimum_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l ])
+        p.compute_minimum_non_systematic_risk_on(bux, [ :c, :b, :b_usd, :l, :cl ])
       end
 
       ## Erre alapvetően nincs szükség, de el lehetne készíteni így is :)
@@ -261,6 +261,7 @@ class Solution
     #p self.data[:indices].first.ordinals.to_a.first
     #p self.data[:portfolios].first.aggregates.keys
     #p self.data[:portfolios].map{ |p| [ p.name, p.aggregates[:b] ] }
+    self.data[:stocks].first.ordinals.to_a.sort[100...105].each { |d,v| print "#{d.to_s}: #{v.inspect}\n" }
   end
 
   def generate
@@ -338,6 +339,19 @@ class Solution
     g.point_markers   = select_point_markers.call( self.data[:indices].first.ordinals )
     g.render :to => "#{image_dir}/deflated_base_indices_all.png", :as => "png", :width => 800, :min_value => g.bottom_value
 
+    # deflált és deflálatlan bázisindexek (részvényenként)
+    (self.data[:stocks]+self.data[:portfolios]).each do |o|
+      g                 = Scruffy::Graph.new
+      g.title           = "Deflálatlan és BUX értékével deflált bázisindexek (#{o.name.upcase})"
+      g.value_formatter = Scruffy::Formatters::Number.new(:separator => ',', :delimiter => ' ', :precision => 3)
+      g.renderer        = Scruffy::Renderers::Standard.new
+      g.add :line_without_dots, "#{o.name} deflálatlan", o.export_a(:b)
+      g.add :line_without_dots, "#{o.name} deflált", o.export_a(:b_bux)
+      g.add :line_without_dots, '1.0', [1.0]*self.data[:indices].first.ordinals.size
+      g.point_markers   = select_point_markers.call( o.ordinals )
+      g.render :to => "#{image_dir}/simple_and_deflated_base_indices_#{o.name.downcase.gsub('+','_')}.png", :as => "png", :width => 800, :min_value => g.bottom_value
+    end
+
     # deviza alakulása
     g                 = Scruffy::Graph.new
     g.title           = "Deviz#{self.data[:currencies] == 2 ? 'a' : 'ák'} alakulása"
@@ -391,6 +405,19 @@ class Solution
     g.point_markers   = select_point_markers.call( self.data[:indices].first.ordinals )
     g.render :to => "#{image_dir}/deflated_base_indices_for_foreigns_all.png", :as => "png", :width => 800, :min_value => g.bottom_value
 
+    # devizával módosított deflált és deflálatlan bázisindexek (részvényenként)
+    (self.data[:stocks]+self.data[:portfolios]).each do |o|
+      g                 = Scruffy::Graph.new
+      g.title           = "Külföldi...deflálatlan és deflált bázisindexek (#{o.name.upcase})"
+      g.value_formatter = Scruffy::Formatters::Number.new(:separator => ',', :delimiter => ' ', :precision => 3)
+      g.renderer        = Scruffy::Renderers::Standard.new
+      g.add :line_without_dots, "#{o.name} deflálatlan", o.export_a(:b_usd)
+      g.add :line_without_dots, "#{o.name} deflált", o.export_a(:b_usd_bux)
+      g.add :line_without_dots, '1.0', [1.0]*self.data[:indices].first.ordinals.size
+      g.point_markers   = select_point_markers.call( o.ordinals )
+      g.render :to => "#{image_dir}/simple_and_deflated_base_indices_for_foreigns_#{o.name.downcase.gsub('+','_')}.png", :as => "png", :width => 800, :min_value => g.bottom_value
+    end
+
     # napi loghozam hisztogramok
     (self.data[:indices] + self.data[:stocks] + self.data[:portfolios]).each do |o|
       g                 = Scruffy::Graph.new
@@ -401,6 +428,27 @@ class Solution
       g.point_markers   = select_point_markers.call( o.ordinals )
       g.render :to => "#{image_dir}/log_yields_#{o.name.downcase.gsub('+','_')}.png", :as => "png", :width => 800, :min_value => -([g.bottom_value.abs, g.top_value.abs].max), :max_value => [g.bottom_value.abs, g.top_value.abs].max
     end
+
+    # napi kumulált loghozam grafikonok
+    (self.data[:indices] + self.data[:stocks] + self.data[:portfolios]).each do |o|
+      g                 = Scruffy::Graph.new
+      g.title           = 'Napi kumulált loghozamok (bázisindexek logaritmusai)'
+      g.value_formatter = Scruffy::Formatters::Number.new(:separator => ',', :delimiter => ' ', :precision => 3)
+      g.renderer        = Scruffy::Renderers::Standard.new
+      g.add :line_without_dots, o.name, o.export_a(:cl)
+      g.point_markers   = select_point_markers.call( o.ordinals )
+      g.render :to => "#{image_dir}/cumulated_log_yields_#{o.name.downcase.gsub('+','_')}.png", :as => "png", :width => 800, :min_value => g.bottom_value
+    end
+
+    g                 = Scruffy::Graph.new
+    g.title           = 'Napi kumulált loghozamok (bázisindexek logaritmusai)'
+    g.value_formatter = Scruffy::Formatters::Number.new(:separator => ',', :delimiter => ' ', :precision => 3)
+    g.renderer        = Scruffy::Renderers::Standard.new
+    (self.data[:indices] + self.data[:stocks] + self.data[:portfolios]).each do |o|
+      g.add :line_without_dots, o.name, o.export_a(:cl)
+    end
+    g.point_markers   = select_point_markers.call( self.data[:indices].first.ordinals )
+    g.render :to => "#{image_dir}/cumulated_log_yields_all.png", :as => "png", :width => 800, :min_value => g.bottom_value
 
   end
 end
