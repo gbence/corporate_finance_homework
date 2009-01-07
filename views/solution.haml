@@ -261,7 +261,7 @@
       A számolt napi loghozamok a következő táblázatokban találhatók:
     %table.sortable#loghozamok
       %thead
-        = tablesorter_pager_for('deflalt_deviza_bazisindexek', (solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios]).size+1)
+        = tablesorter_pager_for('loghozamok', (solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios]).size+1)
         %tr
           %th Időpont
           - for o in solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios]
