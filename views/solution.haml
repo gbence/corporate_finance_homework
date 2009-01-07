@@ -1,0 +1,448 @@
+:javascript
+  $(document).ready(function() { 
+    $("table.sortable#forras_adatok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#forras_adatok_pager"), positionFixed: false});
+    $("table.sortable#bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#deflalt_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deflalt_bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#devizak").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#devizak_pager"), positionFixed: false});
+    $("table.sortable#deviza_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deviza_bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#deflalt_deviza_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deflalt_deviza_bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#loghozamok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#loghozamok_pager"), positionFixed: false});
+  });
+.element
+  %h2 Állapot
+  %p
+    - if solution.processing
+      %span.big Feldolgozás alatt
+      (
+      %a{ :href => "/solutions/#{solution.url_hash}" }<> oldal újratöltése
+      )
+    - else
+      %span.big= solution.state
+      (
+      %a{ :href => "/solutions/#{solution.url_hash}/regenerate" }<> újra generálás
+      )
+
+.element
+  %h2 Beküldő
+  %p&= "#{solution.parameters[:name]} <#{solution.parameters[:email]}>"
+
+.element
+  %h2 Paraméterek
+  %table.unsortable{:style => 'margin-top: 1em; margin-bottom: 1em;'}
+    %thead
+      %tr
+        %th Kulcs
+        %th Érték
+    %tbody
+      - solution.parameters.to_a.each do |k,v|
+        %tr
+          %td&= k
+          %td&= v.inspect
+
+- if not solution.processing and solution.state == 'generated'
+  .element
+    %h2 1. feladat
+    %h3 A feladat
+    %ul
+      %li
+        Elemezze az elektronikus jegyzet 4.1-es fejezetéhez hasonlóan a 2008-as
+        év ármozgásait egy olyan portfólión, ahol 1-1 egységnyi pénzt fektetett
+        az OTP, MOL, AAA részvényekbe. A viszonyítási portfólió legyen a BUX.
+      %li
+        Egy amerikai befektető szempontjából is elemezze a portfóliót. 
+
+    %h3 Megoldások -- tartalomjegyzék
+    %ul
+      %li
+        %a{ :href => "#f1_forras_adatok" } Forrás adatok
+      %li
+        %a{ :href => "#f1_bazisindexek" } Bázisindexek
+      %li
+        %a{ :href => "#f1_deflalt_bazisindexek" } Deflált bázisindexek
+      %li
+        %a{ :href => "#f1_deviza_alakulasa"}== Deviza (#{solution.data[:currencies].last.name.upcase}) alakulása
+      %li
+        %a{ :href => "#f1_devizaban_szamolt_bazisindexek"}== Devizában (#{solution.data[:currencies].last.name.upcase}) kalkuláló befektetőhöz tartozó bázisindexek
+      %li
+        %a{ :href => "#f1_devizaban_szamolt_deflalt_bazisindexek"}== Devizában (#{solution.data[:currencies].last.name.upcase}) kalkuláló befektetőhöz tartozó BUX értékével deflált bázisindexek
+
+    %h3
+      %a{ :name => "f1_forras_adatok" } Forrás adatok
+    %p
+      A
+      %a{ :href => 'http://www.portfolio.hu/' } portfolio.hu
+      oldalról letöltött adatok a következők:
+    %table.sortable#forras_adatok
+      %thead
+        = tablesorter_pager_for('forras_adatok', (solution.data[:indices] + solution.data[:stocks] + solution.data[:portfolios]).size+1)
+        %tr
+          %th Időpont
+          - for o in (solution.data[:indices] + solution.data[:stocks] + solution.data[:portfolios])
+            %th= o.name.upcase + " záróár"
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for i in solution.data[:indices]
+              %td= i.ordinals[day][:c]
+            - for s in solution.data[:stocks]
+              %td= s.ordinals[day][:c]
+            - for p in solution.data[:portfolios]
+              %td= "%.2f" % p.ordinals[day][:c]
+    %p
+      Az adatokat grafikusan az alábbi ábra jeleníti meg:
+    %p
+      %img{ :src => "/images/#{solution.url_hash}/close_indices_all.png", :alt => 'záróárak' }
+    %p
+      %img{ :src => "/images/#{solution.url_hash}/close_indices_i_p.png", :alt => 'záróárak' }
+
+    %h3
+      %a{ :name => "f1_bazisindexek" } Bázisindexek
+    %p
+      A számolt bázisindexeket a következő táblázat tartalmazza:
+    %table.sortable#bazisindexek
+      %thead
+        = tablesorter_pager_for('bazisindexek', (solution.data[:indices] + solution.data[:stocks] + solution.data[:portfolios]).size+1)
+        %tr
+          %th Időpont
+          - for o in (solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios])
+            %th= o.name.upcase + " bázisindex"
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for i in solution.data[:indices]
+              %td= "%.4f" % i.ordinals[day][:b]
+            - for s in solution.data[:stocks]
+              %td= "%.4f" % s.ordinals[day][:b]
+            - for p in solution.data[:portfolios]
+              %td= "%.4f" % p.ordinals[day][:b]
+    %p
+      Az adatokat grafikusan az alábbi ábra jeleníti meg:
+      %img{ :src => "/images/#{solution.url_hash}/base_indices_all.png", :alt => 'bázisindexek' }
+
+    %h3
+      %a{ :name => "f1_deflalt_bazisindexek" } Deflált bázisindexek
+    %p
+      A BUX értékével deflált bázisindexeket a következő táblázat tartalmazza:
+    %table.sortable#deflalt_bazisindexek
+      %thead
+        = tablesorter_pager_for('deflalt_bazisindexek', (solution.data[:stocks] + solution.data[:portfolios]).size+1)
+        %tr
+          %th Időpont
+          - for o in (solution.data[:stocks]+solution.data[:portfolios])
+            %th= o.name.upcase + "deflált bázisindex"
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for s in solution.data[:stocks]
+              %td= "%.4f" % s.ordinals[day][:b_bux]
+            - for p in solution.data[:portfolios]
+              %td= "%.4f" % p.ordinals[day][:b_bux]
+    %p
+      Az adatokat grafikusan az alábbi ábra jeleníti meg:
+      %img{ :src => "/images/#{solution.url_hash}/deflated_base_indices_all.png", :alt => 'deflált bázisindexek' }
+
+    %h3
+      %a{ :name => "f1_deviza_alakulasa"}== Deviza (#{solution.data[:currencies].last.name.upcase}) alakulása
+    %p
+      == A kiválasztott deviz#{solution.data[:currencies].size == 2 ? 'a' : 'ák'} alakulását a következő táblázat tartalmazza:
+    %table.sortable#devizak
+      %thead
+        = tablesorter_pager_for('devizak', (solution.data[:currencies]).size+1)
+        %tr
+          %th Időpont
+          - for s in solution.data[:currencies]
+            %th= s.name.upcase + " érték (HUF)"
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for s in solution.data[:currencies]
+              %td= "%.4f" % s.ordinals[day][:c]
+    %p
+      Az adatokat grafikusan az alábbi ábrák jeleníti meg:
+      %img{ :src => "/images/#{solution.url_hash}/currencies_all.png", :alt => 'deviza értéke' }
+      %img{ :src => "/images/#{solution.url_hash}/currencies_base_all.png", :alt => 'deviza bázisindexe' }
+
+    %h3
+      %a{ :name => "f1_devizaban_szamolt_bazisindexek"}== Devizában (#{solution.data[:currencies].last.name.upcase}) kalkuláló befektetőhöz tartozó bázisindexek
+    %p
+      A devizában fizető külföldi befektetéséhez tartozó bázisindexeket az
+      alábbi táblázat tartalmazza:
+    %table.sortable#deviza_bazisindexek
+      %thead
+        = tablesorter_pager_for('deviza_bazisindexek', (solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios]).size+1)
+        %tr
+          %th Időpont
+          - for o in (solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios])
+            %th= o.name.upcase + " bázisindex"
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for i in solution.data[:indices]
+              %td= "%.4f" % i.ordinals[day][:b_usd]
+            - for s in solution.data[:stocks]
+              %td= "%.4f" % s.ordinals[day][:b_usd]
+            - for p in solution.data[:portfolios]
+              %td= "%.4f" % p.ordinals[day][:b_usd]
+    %p
+      Az adatokat grafikusan az alábbi ábra jeleníti meg:
+      %img{ :src => "/images/#{solution.url_hash}/base_indices_for_foreigns_all.png", :alt => 'devizához tartozó bázisindexek' }
+
+    %h3
+      %a{ :name => "f1_devizaban_szamolt_deflalt_bazisindexek"}== Devizában (#{solution.data[:currencies].last.name.upcase}) kalkuláló befektetőhöz tartozó BUX értékével deflált bázisindexek
+    %p
+      A devizában fizető külföldi befektetéséhez tartozó BUX értékével deflált
+      bázisindexeket az alábbi táblázat tartalmazza:
+    %table.sortable#deflalt_deviza_bazisindexek
+      %thead
+        = tablesorter_pager_for('deflalt_deviza_bazisindexek', (solution.data[:stocks]+solution.data[:portfolios]).size+1)
+        %tr
+          %th Időpont
+          - for o in (solution.data[:stocks]+solution.data[:portfolios])
+            %th= o.name.upcase + "deflált bázisindex"
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for s in solution.data[:stocks]
+              %td= "%.4f" % s.ordinals[day][:b_usd_bux]
+            - for p in solution.data[:portfolios]
+              %td= "%.4f" % p.ordinals[day][:b_usd_bux]
+    %p
+      Az adatokat grafikusan az alábbi ábra jeleníti meg:
+      %img{ :src => "/images/#{solution.url_hash}/deflated_base_indices_for_foreigns_all.png", :alt => 'devizához tartozó deflált bázisindexek' }
+
+  .element
+    %h2 2. feladat
+    %h3 A feladat
+    %ul
+      %li
+        A fenti portfólió elemeire számítson napi loghozamot, ábrázolja őket
+        hisztogramon.
+      %li
+        Számoljon szórást egyenként a 2008. eddigi adataira.
+      %li
+        Számoljon napi loghozamot a portfólió elemeire.
+      %li
+        Számítsa ki a napi loghozamok szórását.
+      %li
+        Hasonlítsa össze az egyedi és portfólió szórást.
+      %li
+        Mi lett volna az optimális összetételű portfólió induláskor, ha a
+        portfólió szórásának minimalizálása a cél?  (Shortolás is megengedett,
+        tehát a súlyuk összege 1, de a súlyok negatív értéket is felvehetnek.)
+
+    %h3 Megoldások -- tartalomjegyzék
+    %ul
+      %li
+        %a{ :href => "#f2_napi_loghozamok" } Napi loghozamok
+      %li
+        %a{ :href => "#f2_szorasok" } Szórások (napi loghozamok szórása is!)
+      %li
+        %a{ :href => "#f2_osszehasonlitas" } Szórások összehasonlítása
+      %li
+        %a{ :href => "#f2_optimalis_portfolio" } Optimális portfólió
+
+    %h3
+      %a{ :name => "f2_napi_loghozamok" } Napi loghozamok
+    %p
+      A számolt napi loghozamok a következő táblázatokban találhatók:
+    %table.sortable#loghozamok
+      %thead
+        = tablesorter_pager_for('deflalt_deviza_bazisindexek', (solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios]).size+1)
+        %tr
+          %th Időpont
+          - for o in solution.data[:indices]+solution.data[:stocks]+solution.data[:portfolios]
+            %th= o.name.upcase
+      %tbody
+        - for day in solution.data[:indices].first.days
+          %tr
+            %td= day.to_s
+            - for i in solution.data[:indices]
+              %td= "%.4f" % (i.ordinals[day][:l] || 0.0)
+            - for s in solution.data[:stocks]
+              %td= "%.4f" % (s.ordinals[day][:l] || 0.0)
+            - for p in solution.data[:portfolios]
+              %td= "%.4f" % (p.ordinals[day][:l] || 0.0)
+    %p
+      Az adatokat grafikusan az alábbi ábrák jelenítik meg:
+      - for o in (solution.data[:indices] + solution.data[:stocks] + solution.data[:portfolios])
+        %img{ :src => "/images/#{solution.url_hash}/log_yields_#{o.name.downcase.gsub('+', '_')}.png", :alt => 'loghozamok' }
+
+    %h3
+      %a{ :name => "f2_szorasok" } Szórások
+    %p
+      A korábban bemutatott adatok statisztikai mutatói közül a szórás és a
+      szórás átlaghoz mért értéke (majd később a β érték) mond a legtöbbet az
+      adott mutatóban rejlő kockázatról.
+    %p
+      A mutatók statisztikai értékeit (a napi loghozamok adatait is!) a
+      következő táblázat tartalmazza:
+    %table.unsortable
+      - for o,caption in solution.data[:indices].map { |o| [ o, 'Index mutatók' ] } + solution.data[:currencies][1..-1].map { |o| [ o, 'Deviza mutatók' ] } + solution.data[:stocks].map { |o| [ o, 'Részvény mutatók' ] } + solution.data[:portfolios].map { |o| [ o, 'Portfólió mutatók' ] }
+        %tbody
+          %tr
+            %th= caption
+            %th Mutató
+            %th Átlag
+            %th Szórás
+            %th Szórásnégyzet
+            %th Szórás (átlag %-ban)
+          %tr
+            %td{ :rowspan => ([:c,:b,:b_bux,:b_usd,:b_usd_bux,:l]&o.aggregates.keys).size }== #{o.name.upcase}
+            %td záróár
+            %td= format_value_or_dash("%.4f", o.aggregates[:c][:m])
+            %td= format_value_or_dash("%.4f", o.aggregates[:c][:s])
+            %td= format_value_or_dash("%.4f", o.aggregates[:c][:v])
+            %td= format_value_or_dash("%.4f", 100*o.aggregates[:c][:s]/o.aggregates[:c][:m])
+          %tr
+            %td bázisindex
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:m])
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:s])
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:v])
+            %td= format_value_or_dash("%.4f", 100*o.aggregates[:b][:s]/o.aggregates[:b][:m])
+          - if o.aggregates[:b_bux]
+            %tr
+              %td deflált bázisindex
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_bux][:m])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_bux][:s])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_bux][:v])
+              %td= format_value_or_dash("%.4f", 100*o.aggregates[:b_bux][:s]/o.aggregates[:b_bux][:m])
+          - if o.aggregates[:b_usd]
+            %tr
+              %td bázisindex (USD)
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:m])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:s])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:v])
+              %td= format_value_or_dash("%.4f", 100*o.aggregates[:b_usd][:s]/o.aggregates[:b_usd][:m])
+          - if o.aggregates[:b_usd_bux]
+            %tr
+              %td deflált bázisindex (USD)
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd_bux][:m])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd_bux][:s])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd_bux][:v])
+              %td= format_value_or_dash("%.4f", 100*o.aggregates[:b_usd_bux][:s]/o.aggregates[:b_usd_bux][:m])
+          - if o.aggregates[:l]
+            %tr
+              %td napi loghozamok
+              %td= format_value_or_dash("%.4f", o.aggregates[:l][:m])
+              %td= format_value_or_dash("%.4f", o.aggregates[:l][:s])
+              %td= format_value_or_dash("%.4f", o.aggregates[:l][:v])
+              %td &ndash;
+
+    %h3
+      %a{ :name => "f2_osszehasonlitas" } Szórások összehasonlítása
+    %p
+      A feladat számolós részét jelentő felében az adatok mélyebb elemzése
+      során a szórások egyszerű számításán túl a β értékét, illetve az egyedi
+      (non-systematic risk) és piaci (systematic risk) kockázatot jellemző
+      egyedi és piaci szórást is kiszámítjuk.
+    %p
+      A számítások során felhasználjuk az egyes részvények és portfólió,
+      illetve az index (BUX) közti kovariancia adatokat is.  Ezeket, illetve a
+      hozamok alapján számított statisztikai értékeket az alábbi táblázat
+      tartalmazza:
+    %table.unsortable
+      - for o,caption in solution.data[:stocks].map { |o| [ o, 'Részvény mutatók' ] } + solution.data[:portfolios].map { |o| [ o, 'Portfólió mutatók' ] }
+        %tbody
+          %tr
+            %th= caption
+            %th Mutató
+            %th Kovariancia (BUX-szal)
+            %th β (BUX-szal)
+            %th Piaci kockázat
+            %th Egyedi kockázat
+            %th Teljes kockázat
+          %tr
+            %td{ :rowspan => ([:b,:b_usd]&o.aggregates.keys).size }== #{o.name.upcase}
+            %td bázisindex
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:c_bux])
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:b_bux])
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:rs_bux])
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:rn_bux])
+            %td= format_value_or_dash("%.4f", o.aggregates[:b][:s])
+          - if o.aggregates[:b_usd]
+            %tr
+              %td bázisindex (USD)
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:c_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:b_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:rs_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:rn_bux])
+              %td= format_value_or_dash("%.4f", o.aggregates[:b_usd][:s])
+    /
+      %p
+        Ellenőrzés gyanánt 
+
+    %h3
+      %a{ :name => "f2_optimalis_portfolio" } Optimális portfólió
+    %p
+      Az optimális portfólió megtalálásához a Nelder-Mead közelítő szimplex
+      módszert alkalmazzuk, amely egy megadott bemeneti súlyra, megadott
+      kiértékelő függvényre, véges számú iteráció alatt megadja az optimális
+      súlyokat.  Fontos, hogy az algoritmus csak egy lokális minimumot tud
+      garantálni, így elképzelhető -- bár nem valószínű, -- hogy nem jó
+      megoldást ad a program.
+    %p
+      A számítások eredményét, illetve a közelítés során kiszámolt
+      részeredményeket az alábbi táblázatok tartalmazzák:
+    %table.unsortable
+      %thead
+        %tr
+          %th Iteráció
+          - for k in solution.data[:portfolios].first.aggregates[:b][:w_min_path].first.first.keys.sort
+            %th== #{k.upcase} súlya
+          %th Fv. érték
+          %th Változás (%)
+      %tbody
+        %tr
+          %td kezdőértékek
+          - for k in solution.data[:portfolios].first.aggregates[:b][:w_min_path].first.first.keys.sort
+            %td= "%.4f" % [ 1.0 / solution.data[:portfolios].first.aggregates[:b][:w_min_path].first.first.size ]
+          %td &ndash;
+          %td &ndash;
+        - solution.data[:portfolios].first.aggregates[:b][:w_min_path].each_with_index do |iteration,i|
+          %tr
+            %td= "%02d" % [i+1]
+            - for k in iteration.first.keys.sort
+              %td= "%.4f" % iteration.first[k]
+            %td= "%.6f" % iteration[1]
+            %td= "%.8f" % iteration[2]
+    %p
+      Tehát az ideális portfólió a következő súlyú részvényekből áll: 
+      = succeed ',' do
+        = solution.data[:portfolios].first.aggregates[:b][:w_min].keys.sort.map { |k| "<strong>%s: %.2f%%</strong>" % [ k.upcase, 100*solution.data[:portfolios].first.aggregates[:b][:w_min][k] ] }.join(', ')
+      azaz
+      - unless solution.data[:portfolios].first.aggregates[:b][:w_min].values.select { |e| e < 0 }.empty?
+        = (long_keys=solution.data[:portfolios].first.aggregates[:b][:w_min].select { |k,v| v >= 0 }.map{|k,v| k.to_s.upcase}) && [ [ !long_keys[0...-1].empty? && long_keys[0...-1].join(', ') || nil, long_keys.last ].compact.join(' és '), long_keys.size==1 ? 'részvényből' : 'részvényekből' ].join(' ')
+        long,
+        = (short_keys=solution.data[:portfolios].first.aggregates[:b][:w_min].select { |k,v| v < 0 }.map{|k,v| k.to_s.upcase}) && [ [ !short_keys[0...-1].empty? && short_keys[0...-1].join(', ') || nil, short_keys.last ].compact.join(' és '), short_keys.size==1 ? 'részvényből' : 'részvényekből' ].join(' ')
+        short pozíciót kell választanunk.
+      - else
+        az összes részvényből long pozíciót kell választanunk.
+    /
+      %p
+        Az eredmény akkor jó, ha az ellenőrzés során átmegy a "teszteken".
+        Esetünkben a tesztet a β értékek ellenőrzése adja, az alábbi képlet
+        szerint:
+      %p
+        <i>β<sub>portfólió</sub></i> = ∑<sub>∀ portfólióra</sub> <i>w<sub>i</sub> β<sub>i</sub></i>
+      %p
+        ami a következőképp alakul:
+      %p
+        == <i>β<sub>portfólió</sub></i> = #{solution.data[:portfolios].first.aggregates[:b][:b_min_bux]}
+
+- unless solution.errors.empty?
+  .element
+    %h2= "Hib#{solution.errors.size == 1 ? 'a' : 'ák'}"
+    %ol
+      - for error in solution.errors.reverse
+        %li
+          %span.big.red= "#{error[:message]} (#{error[:exception]})"
+          %span.grey= error[:occured_at].to_s
+          - for line in error[:backtrace]
+            %br
+            %span= line

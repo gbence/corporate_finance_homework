@@ -1,0 +1,205 @@
+.element
+  %h2 Tartalom&shy;jegyzék
+  %ul
+    %li
+      %a{ :href => "#celok" } Célok
+    %li
+      %a{ :href => "#hogyan_hasznald" } Hogyan használd?
+    %li
+      %a{ :href => "#hogyan_keszul" } Hogyan készül?
+    %li
+      %a{ :href => "/query.html" } Hajrá!
+.element
+  %h2
+    %a{ :name => "celok" } Célok
+  %p
+    Az oldal (és alkalmazás) célja a Vállalati Pénzügytan házi feladat
+    abszolválása.  A feladat ... #TODO
+.element
+  %h2
+    %a{ :name => "hogyan_hasznald" } Hogyan használd?
+  %p
+    Egyszerű, mint az egyszeregy:
+  %ol
+    %li
+      Kattints az oldal alján a
+      %a{ :href => "/query.html" } Hajrá!
+      linkre,
+    %li
+      Töltsd ki a mezőket a megfelelő értékekkel (ha szimpla
+      házimegoldást szeretnél generálni, akkor érdemes az oldal tetején a
+      "Töltsd ki az űrlapot az alapbeállításokkal" gombot megnyomni),
+    %li
+      Majd nyomd meg az oldal alján a "Készítsd el a Vállalati Pénzügyek
+      házimat" gombot.
+.element
+  %h2
+    %a{ :name => "hogyan_keszul" } Hogyan készül?
+  %ol
+    %li
+      %p
+        Adatok letöltése a
+        %a{ :href => "http://www.portfolio.hu/" } portfolio.hu
+        oldalról.
+      %p
+        A letöltés során az alkalmazás a megadott intervallum adatok és
+        részvények alapján a részvényárfolyamok, devizaárfolyamok és a
+        BUX index letöltését kezdeményezi.  Ez utóbbira a kereskedési
+        napok meghatározásánál is szükség van.
+    %li
+      %p
+        A letöltést követően az adatok tisztítása következik, amely elsősorban
+        az egyes részvények adatai közt fellelhető lukak betömését jelenti.
+        Ehhez a szükséges forrást a BUX kereskedési napjai jelentik.
+      %p
+        A cél itt az, hogy minden adatsornál létezzen záróár a BUX minden
+        kereskedési napjára a megadott intervallumon belül.
+      %pre.code
+        :preserve
+          #TODO
+    %li
+      %p
+        A bázisadatok számítása jelenti a feldolgozás során az első eredményt.
+      %pre.code
+        :preserve
+          # Az egyes záróárakat a kezdeti árral elosztva kapjuk meg az 
+          # adott nap bázisindexét.
+          # s_bázis(t) = s_záró(t) / s_záró(1)
+          #   ahol s az adott részvény,
+          #        t pedig az idő.
+          def compute_base_indices
+            base = data[days.first][:c]
+            data.each { |day,values| values[:b] = values[:c] / base }
+          end
+    %li
+      %p
+        A BUX-szal deflált bázisindexek az adott részvény helyzetét mutatják
+        meg a BUX vegyes portfóliójához képest.
+      %pre.code
+        :preserve
+          # s_deflált_bázis(t) = s_bázis(t) / i_bázis(t)
+          #   ahol s az adott részvény,
+          #        t pedig az idő.
+          def compute_base_indices_deflated_by(index)
+            sym = "b_\#{index.name.downcase}".to_sym
+            index_data = index.data
+            data.each { |day,values| values[sym] = values[:b] / index_data[day][:b] }
+          end
+      %p
+        Hasonlóan ehhez a külföldi befektető szemszögéből is számítanunk kell a
+        bázis- és deflált bázis-indexeket.
+      %pre.code
+        :preserve
+          def compute_base_indices_with_currency(currency)
+            sym = "b_\#{currency.name.downcase}".to_sym
+            currency_data = currency.data
+            data.each { |day,values| values[sym] = values[:b] / currency_data[day][:b] }
+          end
+
+          def compute_base_indices_with_currency_deflated_by(currency, index)
+            sym = "b_\#{currency.name.downcase}_\#{index.name.downcase}".to_sym
+            currency_data = currency.data
+            index_data = index.data
+            data.each { |day,values| values[sym] = values[:b] / currency_data[day][:b] / index_data[day][:b] }
+          end
+    %li
+      %p
+        Mivel a két feladat egy dokumentumba kerül, a dokumentum generálása
+        előtt kell (illik) az összes számítást elvégezni.
+      %p
+        Így a következő elem a loghozamok (log yields) számítása.
+      %pre.code
+        :preserve
+          # Loghozamok számítása.
+          # s_loghozam(t) = ln(s_záróár(t) / s_záróár(t-1))
+          def compute_log_yields
+            previous = nil
+            days.each do |day|
+              values = data[day]
+              values[:l] = Math.log(values[:c] / previous) if previous
+              previous = values[:c]
+            end
+          end
+      %p
+        \...illetve a kumulált loghozamok -- amelyek egyébiránt a bázisindexek
+        logaritmusai is egyben.
+      %pre.code
+        :preserve
+          def compute_cumulated_log_yields
+            ### a kommentezett és nem kommentezett rész ugyanazt számítja
+            # sum = 0.0
+            # days.each do |day|
+            #   values = data[day]
+            #   values[:cl] = (sum += values[:l].to_f)
+            # end
+            data.each { |day,values| values[:cl] = Math.log(values[:b]) }
+          end
+    %li
+      %p
+        Az idősoros adatokat követően az aggregált adatok számítása következik,
+        amelynek első lépése az átlag számítása. (Ezek viszonylag -- sőt,
+        nagyon -- egyszerű kódrészletek, sokkal egyszerűbb volt implementálni
+        őket, mint kikeresni a
+        %a{ :href => 'http://rb-gsl.rubyforge.org/ref.html' } GSL
+        leírásából az odatartozó változatot.  Plusz ráadásul jó ujjgyakorlat
+        is. :) )
+      %pre.code
+        :preserve
+          # Átlag
+          def mean
+            (self.inject(0.0){|s,e| s+e}) / self.size.to_f
+          end
+      %p
+        A szórás és szórásnégyzet számítása a következők szerint alakul.
+      %p.note
+        Fontos megjegyezni, hogy a variancia és szórás számításoknál a
+        minta-szórás helyett a tapasztalati-szórás képletét kell alkalmazni,
+        ui. egy jövőbeli becslésről van szó (pl. β érték is erről szól), így ki
+        kell javítani a "szabadságfok veszteséget" -- Brealey-Meyers: Modern
+        vállalati pénzügyek, 144. o.
+        %pre.code
+          :preserve
+            def sample_variance(mean=nil)
+              mean = self.mean unless mean
+              (self.inject(0.0){|s,e| s + (e-mean)**2.0}) / (self.size.to_f-1.0)
+            end
+
+            def sample_standard_deviation(mean=nil)
+              Math.sqrt(self.sample_variance(mean))
+            end
+      /
+        %p
+          Szükség lehet ezeken túl a tapasztalati szórásra és szórásnégyzetre is
+          a "Mi lett volna ha..." kérdések megválaszolásához.  Az egyetlen
+          különbség az osztás során a
+          %code -1.0
+          tag.
+        %pre.code
+          :preserve
+            def variance(mean=nil)
+              mean = self.mean unless mean
+              (self.inject(0.0){|s,e| s + (e-mean)**2.0}) / self.size.to_f
+            end
+
+            def standard_deviation(mean=nil)
+              Math.sqrt(self.variance(mean))
+            end
+      %p
+        Az aggregált adatokat az alábbi kódrészlet illeszti be az adatok közé
+        (pl. az átlag esetében):
+      %pre.code
+        :preserve
+          def compute_mean_for(types)
+            compute_call_for(types) do |t|
+              self.aggregates[t] ||= {}
+              self.aggregates[t][:m] = export_a(t).mean
+            end
+          end
+
+.element
+  %h2
+    %a{ :name => "hajra", :href => "/query.html" } Hajrá!
+  %p
+    A
+    %a{ :href => "/query.html" } Hajrá!
+    link megnyomásával juthatsz a generáló felületre.

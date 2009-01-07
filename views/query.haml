@@ -1,0 +1,78 @@
+- if status
+  %form{ :action => "/solutions", :method => "post" }
+    %fieldset.element
+      %h2 Alap&shy;beállítások
+      %p
+        %label{ :for => 'defaults' }
+          Az alapbeállítások beírásához nyomd meg ezt a gombot:
+        %br
+        %button{ :type => 'button', :id => 'defaults', :onclick => %{$("input#start")[0].value="2008-01-01"; $("input#end")[0].value="2008-12-05"; $('select#stock_1 option:contains("OTP (1995")')[0].selected="selected"; $('select#stock_2 option:contains("MOL")')[0].selected="selected"; $('select#stock_3 option:contains("AAA")')[0].selected="selected"; $('input#weight_1')[0].value="1"; $('input#weight_2')[0].value="1"; $('input#weight_3')[0].value="1"; $('select#currency_1 option[value="usd"]')[0].selected="selected"; $("input#name")[0].value="Golda Bence"; $("input#email")[0].value="gbence@algernon.hu"; true} } Töltsd ki a zűrlapot az alapbeállításokkal
+    %fieldset.element
+      %h2 Mikor?
+      %p
+        %label{ :for => 'start' } Intervallum kezdete
+        %br
+        %input{ :type => 'text', :name => 'start', :id => 'start' }
+      %p
+        %label{ :for => 'end' } Intervallum vége
+        %br
+        %input{ :type => 'text', :name => 'end', :id => 'end' }
+    %fieldset.element
+      %h2 Mit?
+      %p
+        %label{ :for => 'stock_1' } Első részvény (és a súlya)
+        %br
+        %select{ :name => 'stock_1', :id => 'stock_1' }
+          %option{ :value => '0' }= " "
+          - for stock in stocks
+            %option{ :value => stock[:id] }= "#{stock[:name]} (#{stock[:start]}--#{stock[:end]})"
+        %input{ :type => 'text', :name => 'weight_1', :id => 'weight_1', :size => 3, :value => 1 }
+      %p
+        %label{ :for => 'stock_2' } Második részvény (és a súlya)
+        %br
+        %select{ :name => 'stock_2', :id => 'stock_2' }
+          %option{ :value => '0' }= " "
+          - for stock in stocks
+            %option{ :value => stock[:id] }= "#{stock[:name]} (#{stock[:start]}--#{stock[:end]})"
+        %input{ :type => 'text', :name => 'weight_2', :id => 'weight_2', :size => 3, :value => 1 }
+      %p
+        %label{ :for => 'stock_3' } Harmadik részvény (és a súlya)
+        %br
+        %select{ :name => 'stock_3', :id => 'stock_3' }
+          %option{ :value => '0' }= " "
+          - for stock in stocks
+            %option{ :value => stock[:id] }= "#{stock[:name]} (#{stock[:start]}--#{stock[:end]})"
+        %input{ :type => 'text', :name => 'weight_3', :id => 'weight_3', :size => 3, :value => 1 }
+    %fieldset.element
+      %h2 Honnan?
+      %p
+        %label{ :for => 'huf' } Magyarország
+        %br
+        %input{ :type => 'checkbox', :name => 'huf', :id => 'huf', :disabled => 'disabled', :checked => true }
+        Igen, HUF alapú számítások szerepeljenek a dokumentumban.
+      %p
+        %label{ :for => 'currency_1'} Külföld
+        %br
+        %select{ :name => 'currency_1', :id => 'currency_1' }
+          %option{ :value => 'nil' }= " "
+          - for currency in currencies
+            %option{ :value => currency[:id] }= "#{currency[:name]}"
+    %fieldset.element
+      %h2 Ki?
+      %p
+        %label{ :for => 'name' } Név
+        %br
+        %input{ :type => 'text', :name => 'name', :id => 'name' }
+      %p
+        %label{ :for => 'name' } Email
+        %br
+        %input{ :type => 'text', :name => 'email', :id => 'email' }
+    %fieldset.centered
+      %p
+      %input{ :type => 'submit', :name => 'commit', :value => 'Készítsd el a Vállalati Pénzügyek házimat' }
+- else
+  %p.big.red
+    Sajnos a
+    %a{ :href => 'http://www.portfolio.hu' } portfolio.hu
+    oldallal valami gond van, nem lehet adatokat letölteni róla.  A hibájuk
+    elhárításáig szíves türelmüket kérem -- az Ő nevükben is. :)

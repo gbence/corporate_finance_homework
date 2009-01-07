@@ -1,0 +1,18 @@
+!!! XML
+!!! Strict
+%html
+  %head
+    %title Vállalati pénzügytan HF generátor
+    %link{ :href => "/hf.css", :rel => "stylesheet", :type => "text/css" }
+    %link{ :href => "/tablesorter/blue/style.css", :rel => "stylesheet", :media => "screen", :type => "text/css" }
+    %script{ :src => "/jquery-1.2.6.min.js", :type => "text/javascript" }
+    %script{ :src => "/jquery.metadata.min.js", :type => "text/javascript" }
+    %script{ :src => "/jquery.tablesorter.min.js", :type => "text/javascript" }
+    %script{ :src => "/jquery.tablesorter.pager.js", :type => "text/javascript" }
+  %body
+    #header
+      %h1 Vállalati pénzügyek HF megoldó
+    #page
+      = yield
+    #footer
+      %p készítette: Golda Bence (KYU2GG)

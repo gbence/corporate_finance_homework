@@ -1,0 +1,17 @@
+Telepítési útmutató
+===================
+
+Ezek a GEM-ek kötelezők a projekt indításához:
+
+- builder
+- dm-core
+- dm-serializer
+- do_sqlite3
+- haml
+- json_pure
+- mongrel
+- scruffy
+- sinatra
+- sinatras-hat
+
+Egyébiránt RACK alapú dolog, szimpla apache+passenger pároson elfut.
