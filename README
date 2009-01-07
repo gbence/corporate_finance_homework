@@ -9,15 +9,19 @@ it may help you to understand what's going on the business field.
 Installation instructions
 =========================
 
-The following gems are required to run this (TODO: gemspec):
+The following gems and libs are required to run this (TODO: gemspec):
 
 - builder
 - dm-core
+- dm-is-state_machine
 - dm-serializer
+- dm-timestamps
 - do_sqlite3
 - haml
 - json_pure
 - mongrel
+- rb-gsl (from: http://rb-gsl.rubyforge.org/)
+- RMagick
 - scruffy
 - sinatra
 - sinatras-hat
