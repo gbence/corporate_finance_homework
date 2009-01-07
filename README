@@ -1,7 +1,15 @@
-Telepítési útmutató
-===================
+Corporate finance homework
+==========================
 
-Ezek a GEM-ek kötelezők a projekt indításához:
+This is a homework solution generator for Corporate Finance (Corvinus
+University of Budapest).  You may _NOT_ use this to solve your homework
+(probably it won't, because homeworks are often differ from each other ;) ) but
+it may help you to understand what's going on the business field.
+
+Installation instructions
+=========================
+
+The following gems are required to run this (TODO: gemspec):
 
 - builder
 - dm-core
@@ -14,4 +22,3 @@ Ezek a GEM-ek kötelezők a projekt indításához:
 - sinatra
 - sinatras-hat
 
-Egyébiránt RACK alapú dolog, szimpla apache+passenger pároson elfut.
