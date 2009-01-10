@@ -1,15 +1,14 @@
-/
-  :javascript
-    $(document).ready(function() { 
-      $("table.sortable#forras_adatok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#forras_adatok_pager"), positionFixed: false});
-      $("table.sortable#bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#bazisindexek_pager"), positionFixed: false});
-      $("table.sortable#deflalt_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deflalt_bazisindexek_pager"), positionFixed: false});
-      $("table.sortable#devizak").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#devizak_pager"), positionFixed: false});
-      $("table.sortable#deviza_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deviza_bazisindexek_pager"), positionFixed: false});
-      $("table.sortable#deflalt_deviza_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deflalt_deviza_bazisindexek_pager"), positionFixed: false});
-      $("table.sortable#hozamok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#hozamok_pager"), positionFixed: false});
-      $("table.sortable#loghozamok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#loghozamok_pager"), positionFixed: false});
-    });
+:javascript
+  $(document).ready(function() { 
+    $("table.sortable#forras_adatok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#forras_adatok_pager"), positionFixed: false});
+    $("table.sortable#bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#deflalt_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deflalt_bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#devizak").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#devizak_pager"), positionFixed: false});
+    $("table.sortable#deviza_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deviza_bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#deflalt_deviza_bazisindexek").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#deflalt_deviza_bazisindexek_pager"), positionFixed: false});
+    $("table.sortable#hozamok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#hozamok_pager"), positionFixed: false});
+    $("table.sortable#loghozamok").tablesorter({widthFixed: true, widgets: [ "zebra" ]}).tablesorterPager({container: $("#loghozamok_pager"), positionFixed: false});
+  });
 .element
   %h2 Állapot
   %p#state

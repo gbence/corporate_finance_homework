@@ -3,7 +3,6 @@
 
 module Haml::Helpers
   def tablesorter_pager_for(dom_id, colspan=nil)
-    return ""
     %{<tr id="#{dom_id.to_s}_pager">
   <td class="{ sorter: false } like_th"#{ colspan ? " colspan=\"#{colspan}\"" : ""}>
     <form action="#">
