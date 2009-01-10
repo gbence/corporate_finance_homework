@@ -19,6 +19,7 @@ class Ordinal
                       # :b_usd (bázisindex amerikai befektetőn keresztül),
                       # :b_usd_bux (bázisindex amerikai befektetőn keresztül bux-szal deflálva)
                       # :l (loghozam), :cl (kumulált loghozam)
+                      # :y (hozam)
 
     @aggregates = {}  # :m (átlag), :s (szórás), :v (szórásnégyzet),
                       # :c_x (kovariancia egy másik adatsorral),
@@ -65,13 +66,38 @@ class Ordinal
     ordinals.each { |day,values| values[:b] = values[:c] / base }
   end
 
+#  # Hozamok számítása.
+#  def compute_yields
+#    previous = nil
+#    base     = ordinals[days.first][:c]
+#    days.each do |day|
+#      values = ordinals[day]
+#      values[:y] = (values[:c] / previous) * base if previous
+#      previous = values[:c]
+#    end
+#  end
+
+  # Hozamok számítása
+  def compute_yields
+    base     = ordinals[days.first][:c]
+    days.each do |day|
+      values = ordinals[day]
+      values[:y] = ((values[:c] / base) - 1.0)*100.0
+    end
+  end
+
   # Loghozamok számítása.
   def compute_log_yields
     previous = nil
     days.each do |day|
-      values = ordinals[day]
-      values[:l] = Math.log(values[:c] / previous) if previous
-      previous = values[:c]
+      begin
+        values = ordinals[day]
+        values[:l] = Math.log(values[:c] / previous) if previous
+      rescue Errno::EDOM
+        values[:l] = 0.0
+      ensure
+        previous = values[:c]
+      end
     end
   end
 
@@ -82,7 +108,13 @@ class Ordinal
     #   values = ordinals[day]
     #   values[:cl] = (sum += values[:l].to_f)
     # end
-    ordinals.each { |day,values| values[:cl] = Math.log(values[:b]) }
+    ordinals.each do |day,values|
+      begin
+        values[:cl] = Math.log(values[:b])
+      rescue Errno::EDOM
+        values[:cl] = 0.0
+      end
+    end
   end
 
   def compute_call_for(types)
@@ -139,6 +171,12 @@ class Stock < Ordinal
     ordinals.each { |day,values| values[sym] = values[:b] / currency_ordinals[day][:b] }
   end
 
+#  def compute_yields_with_currency(currency)
+#    sym = "y_#{currency.name.downcase}".to_sym
+#    currency_ordinals = currency.ordinals
+#    ordinals.each { |day,values| next if values[:y].nil? or currency_ordinals[day][:y].nil?; values[sym] = values[:y] / currency_ordinals[day][:y] }
+#  end
+
   def compute_base_indices_with_currency_deflated_by(currency, index)
     sym = "b_#{currency.name.downcase}_#{index.name.downcase}".to_sym
     currency_ordinals = currency.ordinals
@@ -187,6 +225,12 @@ class Index < Ordinal
     ordinals.each { |day,values| values[sym] = values[:b] / currency_ordinals[day][:b] }
   end
 
+  #def compute_yields_with_currency(currency)
+  #  sym = "y_#{currency.name.downcase}".to_sym
+  #  currency_ordinals = currency.ordinals
+  #  ordinals.each { |day,values| next if values[:y].nil? or currency_ordinals[day][:y].nil?; values[sym] = values[:y] / currency_ordinals[day][:y] }
+  #end
+
 end
 
 class Currency < Ordinal
@@ -196,12 +240,14 @@ class Portfolio < Stock
   attr_reader :sources
 
   def initialize(stocks_with_weight, start_date, end_date, optimized=false)
-    super(stocks_with_weight.map{|sw| sw[0].name.downcase}.sort.join('+') + (optimized ? '_optimized' : ''), start_date, end_date)
+    super(stocks_with_weight.map{|sw| sw[0].name.downcase}.sort.join('+') + (optimized ? "_#{optimized}" : ''), start_date, end_date)
 
     sum_weight = stocks_with_weight.inject(0.0) { |sw,stock_with_weight| sw + (stock_with_weight.first.ordinals.to_a.sort.first.last[:c]*stock_with_weight.last) }
+    # sum_weight = stocks_with_weight.inject(0.0) { |sw,stock_with_weight| sw + stock_with_weight.last }
     net_weight = stocks_with_weight.inject(0.0) { |sw,stock_with_weight| sw + stock_with_weight.last }
 
     @sources = stocks_with_weight.inject({}) {|h,sw| h.merge(sw[0] => (sw[1] / sum_weight) ) }
+    # @sources = stocks_with_weight.inject({}) {|h,sw| h.merge(sw[0] => sw[1]) }
 
     # Adatokat importál más portfoliókból (részvényekből) megadott súllyal
     stocks_with_weight.each do |stock,weight|
@@ -210,29 +256,30 @@ class Portfolio < Stock
         @ordinals[day][:c] += values[:c]*weight
       end
     end
+
     @ordinals.each { |day,values| values[:c] /= sum_weight / net_weight }
+    # @ordinals.each { |day,values| values[:c] /= sum_weight }
   end
 
-  ## ## Ezekre nincs szükség
-  ## def compute_covariance_matrix_for(types)
-  ##   source_names = sources.map{|s,w| [ s.name.downcase, s ]}
-  ##   compute_call_for(types) do |t|
-  ##     return if self.aggregates[t][:cc]
-  ##     cc = self.aggregates[t][:cc] = {}
-  ##     source_names.each do |sn1,ordinal1|
-  ##       cc[sn1] = {}
-  ##       source_names.each do |sn2,ordinal2|
-  ##         cc[sn1][sn2] = if cc[sn2] and cc[sn2][sn1]
-  ##                          cc[sn2][sn1]
-  ##                        elsif sn1==sn2
-  ##                          ordinal1.aggregates[t][:v]
-  ##                        else
-  ##                          ordinal1.export_a(t).covariance(ordinal2.export_a(t), ordinal1.aggregates[t][:m], ordinal2.aggregates[t][:m])
-  ##                        end
-  ##       end
-  ##     end
-  ##   end
-  ## end
+  def compute_covariance_matrix_for(types)
+    source_names = sources.map{|s,w| [ s.name.downcase.to_sym, s ]}
+    compute_call_for(types) do |t|
+      return if self.aggregates[t][:cc]
+      cc = self.aggregates[t][:cc] = {}
+      source_names.each do |sn1,ordinal1|
+        cc[sn1] = {}
+        source_names.each do |sn2,ordinal2|
+          cc[sn1][sn2] = if cc[sn2] and cc[sn2][sn1]
+                           cc[sn2][sn1]
+                         elsif sn1==sn2
+                           ordinal1.aggregates[t][:v]
+                         else
+                           ordinal1.export_a(t).covariance(ordinal2.export_a(t), ordinal1.aggregates[t][:m], ordinal2.aggregates[t][:m])
+                         end
+        end
+      end
+    end
+  end
 
   ## ## Ezekre nincs szükség
   ## def compute_variance_by_covariance_matrix_for(types)
@@ -258,9 +305,13 @@ class Portfolio < Stock
     dimensions     = sources.size - 1
     initial_vector = GSL::Vector.alloc(dimensions)
     initial_vector.set_all(1.0 / (dimensions+1.0))
+    #sources[0...-1].each_with_index { |s,i| initial_vector[i] = s[2] }
+
     initial_step   = GSL::Vector.alloc(dimensions)
     initial_step.set_all(0.1)
+
     iterations     = 100
+
     epsilon        = 1e-5 # ennyi alatt fogadjuk el az eredményt
 
     # Kovariancia mátrix
@@ -326,7 +377,7 @@ class Portfolio < Stock
       self.aggregates[t][:w_min_path] = path
       self.aggregates[t][:v_min] = path.last[1]
       self.aggregates[t][:s_min] = Math.sqrt(path.last[1])
-      self.aggregates[t]["b_min_#{market.name.downcase}".to_sym] = w_min.map { |k,v| [ self.sources.to_a.inject({}) { |h,ss| h.merge(ss[0].name.to_s.upcase => ss[0]) }[k.to_s.upcase].aggregates[:b]["b_#{market.name.downcase}".to_sym], v ] }.inject(0.0) { |s,vv| s + vv[0]*vv[1] }
+      self.aggregates[t]["y_min_#{market.name.downcase}".to_sym] = w_min.map { |k,v| [ self.sources.to_a.inject({}) { |h,ss| h.merge(ss[0].name.to_s.upcase => ss[0]) }[k.to_s.upcase].aggregates[t]["b_#{market.name.downcase}".to_sym], v ] }.inject(0.0) { |s,vv| s + vv[0]*vv[1] }
     end
   end
 end
